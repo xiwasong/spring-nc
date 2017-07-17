@@ -10,13 +10,13 @@ import cn.hn.java.summer.springnc.annotation.RequestMapping;
 @AutoController
 public interface IAutoMapping {
 
-    //auto mapping use "/one"
+    //mapped to "/one"
     String one();
 
     @ExcludeMapping
     String two();
 
-    //auto mapping use "/three"
+    //mapped to "/three"
     String three(String msg);
 
     @RequestMapping("/imFour")

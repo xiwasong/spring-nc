@@ -8,7 +8,7 @@ oschina:http://git.oschina.net/xiwa/spring-nc
 
 ### 1. declare an interface:
 
-```
+```java
 package cn.hn.java.summer.springnctest.service;
 
 
@@ -42,7 +42,7 @@ public interface IHello {
 
 ### 2. create a service implements the interface:
 
-```
+```java
 package cn.hn.java.summer.springnctest.service;
 
 import cn.hn.java.summer.springnctest.bean.User;
@@ -77,7 +77,7 @@ public class HelloService implements IHello {
 
 ### 3. run application:
 
-```
+```java
 package cn.hn.java.summer.springnctest;
 
 import cn.hn.java.summer.springnc.AutoControllerApplication;
@@ -104,3 +104,39 @@ public class Application {
 output: hello world
 
 ### 5. example: [https://github.com/xiwasong/springnc-test](https://github.com/xiwasong/springnc-test)
+
+# auto mapping support: 
+
+```java
+package service;
+
+import cn.hn.java.summer.springnc.annotation.AutoController;
+import cn.hn.java.summer.springnc.annotation.ExcludeMapping;
+import cn.hn.java.summer.springnc.annotation.RequestMapping;
+
+/**
+ * Created by xw2sy on 2017-07-17.
+ */
+@AutoController
+public interface IAutoMapping {
+
+    //mapped to "/one"
+    String one();
+
+    @ExcludeMapping
+    String two();
+
+    //mapped to "/three"
+    String three(String msg);
+
+    @RequestMapping("/imFour")
+    String four();
+}
+
+```
+mapping result:
+```java
+2017-07-17 16:40:59.234  INFO 10368 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/imFour]}" onto public java.lang.String service.IAutoMappingController.four()
+2017-07-17 16:40:59.235  INFO 10368 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/three]}" onto public java.lang.String service.IAutoMappingController.three(java.lang.String)
+2017-07-17 16:40:59.235  INFO 10368 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/one]}" onto public java.lang.String service.IAutoMappingController.one()
+```
