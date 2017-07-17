@@ -1,5 +1,6 @@
 package cn.hn.java.summer.springnc;
 
+import cn.hn.java.summer.springnc.annotation.AutoController;
 import cn.hn.java.summer.springnc.annotation.Controller;
 import cn.hn.java.summer.springnc.annotation.RestController;
 
@@ -33,11 +34,22 @@ public class AutoControllerApplication {
                     return false;
                 }
 
+                /**
+                 * check need generate controller class
+                 * @param cls class
+                 * @return boolean
+                 */
                 private boolean isControllerClass(Class cls){
                     return
-                            cls.getAnnotation(org.springframework.stereotype.Controller.class)==null && cls.getAnnotation(org.springframework.web.bind.annotation.RestController.class)==null &&
-                            (cls.getAnnotation(Controller.class) != null || cls.getAnnotation(RestController.class) != null);
+                            cls.getAnnotation(org.springframework.stereotype.Controller.class)==null &&
+                            cls.getAnnotation(org.springframework.web.bind.annotation.RestController.class)==null &&
+                        (
+                            cls.getAnnotation(Controller.class) != null ||
+                            cls.getAnnotation(RestController.class) != null ||
+                            cls.getAnnotation(AutoController.class)!=null
+                        );
                 }
+
             },source);
 
         boolean needExit=false;
