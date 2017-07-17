@@ -1,6 +1,9 @@
 # spring-nc
 spring-nc=spring no controller, a spring mvc extension,  auto generate controller from interface .
 
+github:https://github.com/xiwasong/spring-nc   
+oschina:http://git.oschina.net/xiwa/spring-nc  
+
 # useage:
 
 ### 1. declare an interface:
