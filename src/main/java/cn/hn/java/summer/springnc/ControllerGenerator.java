@@ -439,13 +439,14 @@ public class ControllerGenerator {
             rootRes=serviceCls.getResource("");
         }
         if(rootRes!=null) {
-            if("jar".equals(rootRes.getProtocol())){
+            if("jar".equals(rootRes.getProtocol()) || "war".equals(rootRes.getProtocol())){
+                //unnecessary
                 //write into jar file
-                try {
-                    writeClassIntoJarFile(rootRes.getPath(), controllerPackage, className, controllerCls.toBytecode());
-                }catch (Exception e){
-                    //ignore
-                }
+                //try {
+                //    writeClassIntoJarFile(rootRes.getPath(), controllerPackage, className, controllerCls.toBytecode());
+                //}catch (Exception e){
+                //    //ignore
+                //}
             }else {
                 try {
                     controllerCls.writeFile(rootRes.getPath());
