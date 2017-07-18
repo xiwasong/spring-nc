@@ -148,6 +148,14 @@ public class ControllerGenerator {
             AnnotationInfo annInfo=new AnnotationInfo(RestController.class);
             Annotation annotation= makeAnnotation(pool,annInfo);
             attribute.addAnnotation(annotation);
+
+            //add default request mapping
+            if(interfaceCls.getAnnotation(RequestMapping.class)==null){
+                annInfo=new AnnotationInfo(RequestMapping.class);
+                annInfo.addValue("value",new String[]{"/"+interfaceCls.getSimpleName()});
+                annotation= makeAnnotation(pool,annInfo);
+                attribute.addAnnotation(annotation);
+            }
         }
 
         classFile.addAttribute(attribute);

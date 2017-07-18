@@ -35,9 +35,9 @@ public class SpringMvcTest {
 
     @Test
     public void testAutoMapping(){
-        Assert.assertEquals("one",restTemplate.getForObject("/one",String.class));
-        Assert.assertEquals(HttpStatus.NOT_FOUND.value(),restTemplate.getForEntity("/two",String.class).getStatusCodeValue());
-        Assert.assertEquals("three test",restTemplate.getForObject("/three?msg=test",String.class));
-        Assert.assertEquals("four",restTemplate.getForObject("/imFour",String.class));
+        Assert.assertEquals("one",restTemplate.getForObject("/IAutoMapping/one",String.class));
+        Assert.assertEquals(HttpStatus.NOT_FOUND.value(),restTemplate.getForEntity("/IAutoMapping/two",String.class).getStatusCodeValue());
+        Assert.assertEquals("three test",restTemplate.getForObject("/IAutoMapping/three?msg=test",String.class));
+        Assert.assertEquals("four",restTemplate.getForObject("/IAutoMapping/imFour",String.class));
     }
 }
