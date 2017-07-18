@@ -1,4 +1,4 @@
-import cn.hn.java.summer.springnc.AutoControllerApplication;
+import cn.hn.java.summer.springnc.AutoControllerConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -7,10 +7,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 
 @SpringBootApplication(scanBasePackages = "service")
-public class Application {
+//extends AutoControllerConfiguration or
+//@ImportAutoConfiguration(AutoControllerConfiguration.class)
+public class Application extends AutoControllerConfiguration{
 
     public static void main(String[] args) {
-        AutoControllerApplication.run(Application.class);
         SpringApplication.run(Application.class, args);
     }
 }

@@ -1,0 +1,28 @@
+bin
+temp/*
+
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+# ignore Maven generated target folders
+target
+
+log/*.gz
+*.log
+*.log.*
+*.log-*
+
+# ignore eclipse files
+.project
+.classpath
+.settings
+.metadata
+
+.idea/
+## File-based project format:
+*.iws
+*.iml
+*.ipr

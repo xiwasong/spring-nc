@@ -4,6 +4,8 @@ import cn.hn.java.summer.springnc.annotation.*;
 import javassist.*;
 import javassist.bytecode.*;
 import javassist.bytecode.annotation.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,7 +30,7 @@ import java.util.jar.JarOutputStream;
  */
 public class ControllerGenerator {
 
-    //private static final Log logger= LogFactory.getLog(ControllerGenerator.class);
+    private static final Log logger= LogFactory.getLog(ControllerGenerator.class);
 
     private static final String AUTO_CONTROLLER_NAME="Controller";
 
@@ -56,10 +58,9 @@ public class ControllerGenerator {
     public static Class createController(Class interfaceCls, Class serviceCls){
         //get package from service interface class
         String controllerPackage=interfaceCls.getPackage().getName();
-        //if(logger.isDebugEnabled()) {
-        //    logger.debug("start to generate controller for:" + interfaceCls.getName());
-        //}
-        System.out.print("start to generate controller for:" + interfaceCls.getName());
+        if(logger.isDebugEnabled()) {
+            logger.debug("start to generate controller for:" + interfaceCls.getName());
+        }
         return createController(controllerPackage,interfaceCls,serviceCls);
     }
 
@@ -112,116 +113,20 @@ public class ControllerGenerator {
             makeInterfaceMethods(interfaceCls,serviceCls,controllerCls);
 
             //save class file to running directory
-            saveClassFile(controllerCls,serviceCls,controllerPackage,className);
+            if(logger.isDebugEnabled()) {
+                saveClassFile(controllerCls, serviceCls, controllerPackage, className);
+            }
 
             //load class
             Class cls= controllerCls.toClass(Thread.currentThread().getContextClassLoader(),null);
-            //if(logger.isDebugEnabled()){
-            //    logger.debug(cls.getName()+" been generated!");
-            //}
+            if(logger.isInfoEnabled()){
+                logger.debug(cls.getName()+" class generated!");
+            }
 
             return cls;
         }catch (Exception e){
-            //logger.error("generate controller failed!!!!",e);
-            e.printStackTrace();
+            logger.error("generate controller failed!!!!",e);
             return null;
-        }
-    }
-
-    /**
-     * save class bytecode to file (directory or jar)
-     * @param controllerCls controller ct class
-     * @param serviceCls service class
-     * @param controllerPackage controller package
-     * @param className controller class name
-     */
-    private static void saveClassFile(CtClass controllerCls, Class serviceCls, String controllerPackage, String className){
-        URL rootRes=AutoControllerApplication.class.getClassLoader().getResource("");
-        if(rootRes==null){
-            //try again
-            rootRes=serviceCls.getResource("");
-        }
-        if(rootRes!=null) {
-            if("jar".equals(rootRes.getProtocol())){
-                //write into jar file
-                try {
-                    writeClassIntoJarFile(rootRes.getPath(), controllerPackage, className, controllerCls.toBytecode());
-                }catch (Exception e){
-                    //ignore
-                }
-            }else {
-                try {
-                    controllerCls.writeFile(rootRes.getPath());
-                } catch (Exception e) {
-                    //ignore
-                    //if (logger.isDebugEnabled()) {
-                    //    logger.error("write class file error!", e);
-                    //}
-                }
-            }
-        }
-    }
-
-    /**
-     * write Class byte codes Into SpringBoot Jar file
-     * @param sourceJarFile jar file
-     * @param classPackage class package
-     * @param className class name
-     * @param codeBytes class byte codes
-     */
-    public static void writeClassIntoJarFile(String sourceJarFile,String classPackage,String className, byte[] codeBytes){
-        //String jarClassPath="file://xxx/springnc-test/target/springnc-test-1.0-SNAPSHOT.jar!/BOOT-INF/classes!/";
-        String[] jarPaths=sourceJarFile.split("!/");
-        //eg:/BOOT-INF/classes or class package path
-        String baseClassDir=jarPaths[1];
-        //trim end /
-        if(baseClassDir.lastIndexOf("/")==baseClassDir.length()-1){
-            baseClassDir=baseClassDir.substring(0,baseClassDir.length()-1);
-        }
-        String jarFilePath=jarPaths[0];
-        if(jarFilePath.startsWith(PREFIX_FILE)){
-            jarFilePath=jarFilePath.substring(PREFIX_FILE.length());
-        }
-        File jarFile=new File(jarFilePath);
-        if(!jarFile.exists()){
-            //logger.error(sourceJarFile+" is not exists!!!!!");
-            System.out.print(sourceJarFile+" is not exists!!!!!");
-            return;
-        }
-        try {
-            String targetName = baseClassDir;
-            String packagePath=classPackage.replace(".", "/");
-            if(!baseClassDir.equals(packagePath)){
-                targetName=baseClassDir + "/" + packagePath;
-            }
-            JarFile orignJar = new JarFile(jarFile);
-            Enumeration<JarEntry> entryEnumeration = orignJar.entries();
-            BufferedInputStream bufferedInputStream;
-            Map<String, byte[]> jarBytes = new HashMap<String, byte[]>();
-            while (entryEnumeration.hasMoreElements()) {
-                JarEntry jarEntry = entryEnumeration.nextElement();
-                bufferedInputStream = new BufferedInputStream(orignJar.getInputStream(jarEntry));
-                int len = bufferedInputStream.available();
-                byte[] bytes = new byte[len];
-                bufferedInputStream.read(bytes);
-                bufferedInputStream.close();
-                jarBytes.put(jarEntry.getName(), bytes);
-            }
-            orignJar.close();
-
-            JarOutputStream jos = new JarOutputStream(new FileOutputStream(jarFile));
-            for (String key : jarBytes.keySet()) {
-                jarBytes.get(key);
-                JarEntry jarEntry = new JarEntry(key);
-                jos.putNextEntry(jarEntry);
-                jos.write(jarBytes.get(key));
-            }
-            jos.putNextEntry(new JarEntry(targetName +"/"+ className + ".class"));
-            jos.write(codeBytes);
-            jos.close();
-        }catch (Exception e){
-            //logger.error("write class bytes into jar file error!!!!",e);
-            e.printStackTrace();
         }
     }
 
@@ -378,8 +283,7 @@ public class ControllerGenerator {
 
                 targetCls.addMethod(ctMethod);
             }catch (Exception e){
-                //logger.error("create interface method "+mtd.getName()+" failed!!",e);
-                e.printStackTrace();
+                logger.error("create interface method "+mtd.getName()+" failed!!",e);
             }
         }
     }
@@ -510,5 +414,101 @@ public class ControllerGenerator {
             }
         }
         return memberValues;
+    }
+
+
+    /**
+     * save class bytecode to file (directory or jar)
+     * @param controllerCls controller ct class
+     * @param serviceCls service class
+     * @param controllerPackage controller package
+     * @param className controller class name
+     */
+    private static void saveClassFile(CtClass controllerCls, Class serviceCls, String controllerPackage, String className){
+        URL rootRes=ControllerGenerator.class.getClassLoader().getResource("");
+        if(rootRes==null){
+            //try again
+            rootRes=serviceCls.getResource("");
+        }
+        if(rootRes!=null) {
+            if("jar".equals(rootRes.getProtocol())){
+                //write into jar file
+                try {
+                    writeClassIntoJarFile(rootRes.getPath(), controllerPackage, className, controllerCls.toBytecode());
+                }catch (Exception e){
+                    //ignore
+                }
+            }else {
+                try {
+                    controllerCls.writeFile(rootRes.getPath());
+                } catch (Exception e) {
+                    //ignore
+                    if (logger.isDebugEnabled()) {
+                        logger.error("write class file error!", e);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * write Class byte codes Into SpringBoot Jar file
+     * @param sourceJarFile jar file
+     * @param classPackage class package
+     * @param className class name
+     * @param codeBytes class byte codes
+     */
+    public static void writeClassIntoJarFile(String sourceJarFile,String classPackage,String className, byte[] codeBytes){
+        //String jarClassPath="file://xxx/springnc-test/target/springnc-test-1.0-SNAPSHOT.jar!/BOOT-INF/classes!/";
+        String[] jarPaths=sourceJarFile.split("!/");
+        //eg:/BOOT-INF/classes or class package path
+        String baseClassDir=jarPaths[1];
+        //trim end /
+        if(baseClassDir.lastIndexOf("/")==baseClassDir.length()-1){
+            baseClassDir=baseClassDir.substring(0,baseClassDir.length()-1);
+        }
+        String jarFilePath=jarPaths[0];
+        if(jarFilePath.startsWith(PREFIX_FILE)){
+            jarFilePath=jarFilePath.substring(PREFIX_FILE.length());
+        }
+        File jarFile=new File(jarFilePath);
+        if(!jarFile.exists()){
+            logger.error(sourceJarFile+" is not exists!!!!!");
+            return;
+        }
+        try {
+            String targetName = baseClassDir;
+            String packagePath=classPackage.replace(".", "/");
+            if(!baseClassDir.equals(packagePath)){
+                targetName=baseClassDir + "/" + packagePath;
+            }
+            JarFile orignJar = new JarFile(jarFile);
+            Enumeration<JarEntry> entryEnumeration = orignJar.entries();
+            BufferedInputStream bufferedInputStream;
+            Map<String, byte[]> jarBytes = new HashMap<String, byte[]>();
+            while (entryEnumeration.hasMoreElements()) {
+                JarEntry jarEntry = entryEnumeration.nextElement();
+                bufferedInputStream = new BufferedInputStream(orignJar.getInputStream(jarEntry));
+                int len = bufferedInputStream.available();
+                byte[] bytes = new byte[len];
+                bufferedInputStream.read(bytes);
+                bufferedInputStream.close();
+                jarBytes.put(jarEntry.getName(), bytes);
+            }
+            orignJar.close();
+
+            JarOutputStream jos = new JarOutputStream(new FileOutputStream(jarFile));
+            for (String key : jarBytes.keySet()) {
+                jarBytes.get(key);
+                JarEntry jarEntry = new JarEntry(key);
+                jos.putNextEntry(jarEntry);
+                jos.write(jarBytes.get(key));
+            }
+            jos.putNextEntry(new JarEntry(targetName +"/"+ className + ".class"));
+            jos.write(codeBytes);
+            jos.close();
+        }catch (Exception e){
+            logger.error("write class bytes into jar file error!!!!",e);
+        }
     }
 }

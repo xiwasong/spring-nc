@@ -4,6 +4,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -30,5 +31,13 @@ public class SpringMvcTest {
     @Test
     public void testPathVariable(){
         Assert.assertEquals("info id:123",restTemplate.getForObject("/info/123",String.class));
+    }
+
+    @Test
+    public void testAutoMapping(){
+        Assert.assertEquals("one",restTemplate.getForObject("/one",String.class));
+        Assert.assertEquals(HttpStatus.NOT_FOUND.value(),restTemplate.getForEntity("/two",String.class).getStatusCodeValue());
+        Assert.assertEquals("three test",restTemplate.getForObject("/three?msg=test",String.class));
+        Assert.assertEquals("four",restTemplate.getForObject("/imFour",String.class));
     }
 }

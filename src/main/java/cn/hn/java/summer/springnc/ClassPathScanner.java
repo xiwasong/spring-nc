@@ -173,7 +173,4 @@ public class ClassPathScanner {
         return s.replace('/', '.').replace('\\', '.').replaceAll("^\\.","");
     }
 
-    public interface IncludeTypeFilter{
-        boolean accept(Class cls);
-    }
 }
