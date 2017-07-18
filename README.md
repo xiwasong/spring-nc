@@ -150,7 +150,7 @@ public interface IAutoMapping {
 ```
 mapping result:
 ```java
-2017-07-17 16:40:59.234  INFO 10368 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/imFour]}" onto public java.lang.String service.IAutoMappingController.four()
-2017-07-17 16:40:59.235  INFO 10368 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/three]}" onto public java.lang.String service.IAutoMappingController.three(java.lang.String)
-2017-07-17 16:40:59.235  INFO 10368 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/one]}" onto public java.lang.String service.IAutoMappingController.one()
+2017-07-19 02:39:43.311  INFO 6296 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/IAutoMapping/one]}" onto public java.lang.String service.IAutoMappingController.one()
+2017-07-19 02:39:43.311  INFO 6296 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/IAutoMapping/imFour]}" onto public java.lang.String service.IAutoMappingController.four()
+2017-07-19 02:39:43.311  INFO 6296 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/IAutoMapping/three]}" onto public java.lang.String service.IAutoMappingController.three(java.lang.String)
 ```
