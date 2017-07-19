@@ -47,7 +47,7 @@ public class AutoControllerConfiguration implements BeanDefinitionRegistryPostPr
                         //generate controller
                         if(clsInterface==controllerCls){
                             //create
-                            Class beanClass= ControllerGenerator.createController(controllerCls,cls);
+                            Class beanClass=new ControllerGenerator(controllerCls,cls).create();
                             //register
                             registerBean(registry, beanClass);
                             break;

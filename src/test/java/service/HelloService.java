@@ -2,7 +2,6 @@ package service;
 
 import bean.User;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * Created by xw2sy on 2017-07-15.
@@ -15,7 +14,11 @@ public class HelloService implements IHello {
         return "hello "+user.getName();
     }
 
-    public String say2(String name, int age) {
+    public String say(String msg) {
+        return "hello "+msg;
+    }
+
+    public String say(String name, int age) {
         return "name:"+name+" age:"+age;
     }
 
@@ -23,7 +26,7 @@ public class HelloService implements IHello {
         return "name:"+name;
     }
 
-    public String info(@PathVariable("id") String id) {
+    public String info(String id) {
         return "info id:"+id;
     }
 }

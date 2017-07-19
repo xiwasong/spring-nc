@@ -17,7 +17,6 @@ import java.io.FileOutputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.util.*;
 import java.util.jar.JarEntry;
@@ -49,19 +48,28 @@ public class ControllerGenerator {
         ANNOTATION_NAME_MAPPING.put("PutMapping", "org.springframework.web.bind.annotation.PutMapping");
     }
 
+    private Class interfaceCls;
+    private Class serviceCls;
+    private ClassPool classPool;
+    private ConstPool constPool;
+    private CtClass controllerCtCls;
+
+    public ControllerGenerator(Class interfaceCls, Class serviceCls){
+        this.interfaceCls=interfaceCls;
+        this.serviceCls=serviceCls;
+    }
+
     /**
      * generate controller by service interface
-     * @param interfaceCls interface class
-     * @param serviceCls service class which implements from interfaceCls
      * @return controller class
      */
-    public static Class createController(Class interfaceCls, Class serviceCls){
+    public Class create(){
         //get package from service interface class
         String controllerPackage=interfaceCls.getPackage().getName();
         if(logger.isDebugEnabled()) {
             logger.debug("start to generate controller for:" + interfaceCls.getName());
         }
-        return createController(controllerPackage,interfaceCls,serviceCls);
+        return createController(controllerPackage);
     }
 
     /**
@@ -69,7 +77,7 @@ public class ControllerGenerator {
      * @param interfaceCls controller's interface
      * @return boolean
      */
-    public static boolean controllerClassExists(Class interfaceCls){
+    public boolean controllerClassExists(Class interfaceCls){
         String className=interfaceCls.getSimpleName()+AUTO_CONTROLLER_NAME;
         String controllerPackage=interfaceCls.getPackage().getName();
         String clsFullName=controllerPackage +"."+ className;
@@ -83,11 +91,9 @@ public class ControllerGenerator {
     /**
      * generate controller by service interface
      * @param controllerPackage set generated controller's package
-     * @param interfaceCls interface class
-     * @param serviceCls service class which implements from interfaceCls
      * @return controller class
      */
-    private static Class createController(String controllerPackage, Class interfaceCls, Class serviceCls){
+    private Class createController(String controllerPackage){
         try {
             ClassPool pool = ClassPool.getDefault();
             String className=interfaceCls.getSimpleName()+AUTO_CONTROLLER_NAME;
@@ -98,27 +104,30 @@ public class ControllerGenerator {
                 //need create class
             }
 
-            CtClass controllerCls = pool.makeClass(clsFullName);
+            controllerCtCls = pool.makeClass(clsFullName);
+            classPool=controllerCtCls.getClassPool();
+            constPool=controllerCtCls.getClassFile().getConstPool();
+
             //init class's annotations
-            initClassAnnotationsAttribute(controllerCls,interfaceCls);
+            initClassAnnotationsAttribute();
 
             //set interface
             CtClass serviceInterface = pool.get(interfaceCls.getName());
-            controllerCls.setInterfaces(new CtClass[]{serviceInterface});
+            controllerCtCls.setInterfaces(new CtClass[]{serviceInterface});
 
             //init autowired service field
-            initAutowiredField(controllerCls,serviceCls);
+            initAutowiredField();
 
             //add interface implements methods to controller class
-            makeInterfaceMethods(interfaceCls,serviceCls,controllerCls);
+            makeInterfaceMethods();
 
             //save class file to running directory
             if(logger.isDebugEnabled()) {
-                saveClassFile(controllerCls, serviceCls, controllerPackage, className);
+                saveClassFile(controllerPackage, className);
             }
 
             //load class
-            Class cls= controllerCls.toClass(Thread.currentThread().getContextClassLoader(),null);
+            Class cls= controllerCtCls.toClass(Thread.currentThread().getContextClassLoader(),null);
             if(logger.isInfoEnabled()){
                 logger.debug(cls.getName()+" class generated!");
             }
@@ -132,28 +141,25 @@ public class ControllerGenerator {
 
     /**
      * init target class annotation attributes
-     * @param targetCls target class
-     * @param interfaceCls target class's interface
      */
-    private static void initClassAnnotationsAttribute(CtClass targetCls, Class interfaceCls){
-        ClassFile classFile= targetCls.getClassFile();
-        ConstPool pool=classFile.getConstPool();
+    private void initClassAnnotationsAttribute(){
+        ClassFile classFile= controllerCtCls.getClassFile();
 
         //use raw annotations make AnnotationsAttribute
         java.lang.annotation.Annotation[] annotations= interfaceCls.getAnnotations();
-        AnnotationsAttribute attribute= makeAnnotationsAttribute(pool,annotations);
+        AnnotationsAttribute attribute= makeAnnotationsAttribute(annotations);
 
         //use auto mapping controller
         if(interfaceCls.getAnnotation(AutoController.class)!=null){
             AnnotationInfo annInfo=new AnnotationInfo(RestController.class);
-            Annotation annotation= makeAnnotation(pool,annInfo);
+            Annotation annotation= makeAnnotation(annInfo);
             attribute.addAnnotation(annotation);
 
             //add default request mapping
             if(interfaceCls.getAnnotation(RequestMapping.class)==null){
                 annInfo=new AnnotationInfo(RequestMapping.class);
                 annInfo.addValue("value",new String[]{"/"+interfaceCls.getSimpleName()});
-                annotation= makeAnnotation(pool,annInfo);
+                annotation= makeAnnotation(annInfo);
                 attribute.addAnnotation(annotation);
             }
         }
@@ -163,33 +169,30 @@ public class ControllerGenerator {
 
     /**
      * init autowired service field
-     * @param controllerCls controller ct class
-     * @param serviceCls service class
      */
-    private static void initAutowiredField(CtClass controllerCls, Class serviceCls) throws CannotCompileException {
+    private void initAutowiredField() throws CannotCompileException {
         //add service field
-        CtField serviceField =CtField.make("private "+serviceCls.getName()+" service;",controllerCls);
+        CtField serviceField =CtField.make("private "+serviceCls.getName()+" service;",controllerCtCls);
         //create autowired annotation
-        ConstPool constPool= controllerCls.getClassFile().getConstPool();
+        ConstPool constPool= controllerCtCls.getClassFile().getConstPool();
         AnnotationsAttribute annAttr=new AnnotationsAttribute(constPool,AnnotationsAttribute.visibleTag);
         Annotation autowired=new Annotation(Autowired.class.getName(),constPool);
         annAttr.addAnnotation(autowired);
         serviceField.getFieldInfo().addAttribute(annAttr);
-        controllerCls.addField(serviceField);
+        controllerCtCls.addField(serviceField);
     }
 
     /**
      * make an AnnotationsAttribute
-     * @param pool ConstPool
      * @param annotations annotations
      * @return AnnotationsAttribute
      */
-    private static AnnotationsAttribute makeAnnotationsAttribute(ConstPool pool, java.lang.annotation.Annotation[] annotations){
+    private AnnotationsAttribute makeAnnotationsAttribute(java.lang.annotation.Annotation[] annotations){
         //create Annotations Attribute instance
-        AnnotationsAttribute annAttr=new AnnotationsAttribute(pool,AnnotationsAttribute.visibleTag);
+        AnnotationsAttribute annAttr=new AnnotationsAttribute(constPool,AnnotationsAttribute.visibleTag);
         //fetch all annotations ,add to Attribute
         for(java.lang.annotation.Annotation ann : annotations){
-            Annotation annotation=makeAnnotation(pool,ann);
+            Annotation annotation=makeAnnotation(ann);
             //addMemberValue first then addAnnotation
             annAttr.addAnnotation(annotation);
         }
@@ -199,11 +202,10 @@ public class ControllerGenerator {
 
     /**
      * make bytecode annotation by raw annotation
-     * @param pool ConstPool
      * @param ann raw annotation
      * @return bytecode annotation
      */
-    private static Annotation makeAnnotation(ConstPool pool,java.lang.annotation.Annotation ann){
+    private Annotation makeAnnotation(java.lang.annotation.Annotation ann){
         //get annotation's all field names and values
         Map<String,Object> memberValues=getAnnotationValues(ann);
         //annotation info
@@ -212,30 +214,29 @@ public class ControllerGenerator {
         annInfo.setValues(memberValues);
 
         //use annotation info make bytecode annotation
-        return makeAnnotation(pool,annInfo);
+        return makeAnnotation(annInfo);
 
     }
 
     /**
      * make bytecode annotation by raw annotation
-     * @param pool ConstPool
      * @param annInfo an annotation info
      * @return bytecode annotation
      */
-    private static Annotation makeAnnotation(ConstPool pool,AnnotationInfo annInfo){
+    private Annotation makeAnnotation(AnnotationInfo annInfo){
         String simpleTypeName=annInfo.getName();
         //use default mapped name
         String typeName=ANNOTATION_NAME_MAPPING.get(simpleTypeName);
         if(typeName==null){
             typeName=annInfo.getAnnotationClass().getName();
         }
-        Annotation annotation=new Annotation(typeName,pool);
+        Annotation annotation=new Annotation(typeName,constPool);
         if(annInfo.getValues()!=null) {
             Set<String> keys = annInfo.getValues().keySet();
             for (String key : keys) {
                 Object value = annInfo.getValues().get(key);
                 //use value make a MemberValue
-                MemberValue memberValue = makeMemberValue(value, pool);
+                MemberValue memberValue = makeMemberValue(value);
                 annotation.addMemberValue(key, memberValue);
             }
         }
@@ -245,21 +246,26 @@ public class ControllerGenerator {
     /**
      * use value make a MemberValue
      * @param value source value object
-     * @param pool const pool
      * @return MemberValue
      */
-    private static MemberValue makeMemberValue(Object value,ConstPool pool){
+    private MemberValue makeMemberValue(Object value){
         MemberValue memberValue=null;
         if(value instanceof String){
-            memberValue=new StringMemberValue(value.toString(),pool);
+            memberValue=new StringMemberValue(value.toString(),constPool);
         }else if(value instanceof Boolean){
-            memberValue=new BooleanMemberValue((Boolean)value, pool);
+            memberValue=new BooleanMemberValue((Boolean)value, constPool);
+        }else if(value instanceof Enum){
+            //for enum type
+            EnumMemberValue enumMemberValue=new EnumMemberValue(constPool);
+            enumMemberValue.setType(((Enum)value).getClass().getName());
+            enumMemberValue.setValue(((Enum)value).name());
+            memberValue=enumMemberValue;
         }else if(value.getClass().isArray()){
             int len=Array.getLength(value);
-            ArrayMemberValue arrayMemberValue=new ArrayMemberValue(pool);
+            ArrayMemberValue arrayMemberValue=new ArrayMemberValue(constPool);
             MemberValue[] memberValues=new MemberValue[len];
             for(int i=0;i<len;i++){
-                memberValues[i]=makeMemberValue(Array.get(value,i),pool);
+                memberValues[i]=makeMemberValue(Array.get(value,i));
             }
             arrayMemberValue.setValue(memberValues);
             memberValue=arrayMemberValue;
@@ -269,27 +275,24 @@ public class ControllerGenerator {
 
     /**
      * add interface implements methods to target class
-     * @param interfaceCls interface calss
-     * @param targetCls target ct class
      */
-    private static void  makeInterfaceMethods(Class interfaceCls, Class serviceCls, CtClass targetCls){
-        ClassPool pool = ClassPool.getDefault();
+    private void  makeInterfaceMethods(){
         Method[] methods= interfaceCls.getDeclaredMethods();
         for(Method mtd: methods){
             Class[] paraTypes= mtd.getParameterTypes();
             CtClass[] ctClasses=new CtClass[paraTypes.length];
             try {
                 for(int i=0;i<paraTypes.length;i++){
-                    ctClasses[i]=pool.get(paraTypes[i].getName());
+                    ctClasses[i]=classPool.get(paraTypes[i].getName());
                 }
-                CtMethod ctMethod = new CtMethod(pool.get(mtd.getReturnType().getName()),mtd.getName(),ctClasses,targetCls);
+                CtMethod ctMethod = new CtMethod(classPool.get(mtd.getReturnType().getName()),mtd.getName(),ctClasses,controllerCtCls);
                 ctMethod.setBody("return this.service." + mtd.getName() + "($$);");
                 //auto mapping tag
                 boolean autoMapping=interfaceCls.getAnnotation(AutoController.class)!=null;
                 //init method annotations
-                initMethodAnnotationsAttribute(targetCls,serviceCls,mtd,ctMethod,autoMapping);
+                initMethodAnnotationsAttribute(mtd,ctMethod,autoMapping);
 
-                targetCls.addMethod(ctMethod);
+                controllerCtCls.addMethod(ctMethod);
             }catch (Exception e){
                 logger.error("create interface method "+mtd.getName()+" failed!!",e);
             }
@@ -298,18 +301,27 @@ public class ControllerGenerator {
 
     /**
      * get method parameters's names
-     * @param serviceCls service class
      * @param method rwa method
      * @return parameter names
      */
-    private static String[] getMethodParameterNames(Class serviceCls, Method method){
+    private String[] getMethodParameterNames(Method method){
         String[] paramNames=new String[0];
         try {
-            ClassPool pool = ClassPool.getDefault();
-            method = serviceCls.getDeclaredMethod(method.getName(), method.getParameterTypes());
-            CtMethod ctMethod= pool.getMethod(serviceCls.getName(),method.getName());
+            //must use service class's implements method
+            method=serviceCls.getDeclaredMethod(method.getName(),method.getParameterTypes());
+
+            CtClass ctClass= classPool.getCtClass(serviceCls.getName());
+            Class[] parClasses= method.getParameterTypes();
+            //get parameter's ct class
+            CtClass[] ctParaClz=new CtClass[parClasses.length];
+            for(int i=0;i<parClasses.length;i++){
+                ctParaClz[i]=classPool.getCtClass(parClasses[i].getName());
+            }
+            //get ct method
+            CtMethod ctMethod= ctClass.getDeclaredMethod(method.getName(),ctParaClz);
             MethodInfo methodInfo = ctMethod.getMethodInfo();
             CodeAttribute codeAttribute = methodInfo.getCodeAttribute();
+            //get Variable info
             LocalVariableAttribute attr = (LocalVariableAttribute) codeAttribute.getAttribute(LocalVariableAttribute.tag);
             if (attr == null) {
                 return new String[]{};
@@ -328,24 +340,21 @@ public class ControllerGenerator {
 
     /**
      * init target class method's annotation attributes
-     * @param targetCls target class
      * @param  method raw method
      * @param  ctMethod target method
      * @param autoMapping auto mapping method as an action
      */
-    private static void initMethodAnnotationsAttribute(CtClass targetCls,Class serviceCls, Method method, CtMethod ctMethod, boolean autoMapping){
-        ConstPool pool=targetCls.getClassFile().getConstPool();
-
+    private void initMethodAnnotationsAttribute(Method method, CtMethod ctMethod, boolean autoMapping){
         //make method's raw annotations
         java.lang.annotation.Annotation[] annotations= method.getAnnotations();
-        AnnotationsAttribute attribute= makeAnnotationsAttribute(pool,annotations);
+        AnnotationsAttribute attribute= makeAnnotationsAttribute(annotations);
 
         //need auto mapping
         if(autoMapping && (method.getAnnotation(ExcludeMapping.class)==null && method.getAnnotation(RequestMapping.class)==null && method.getAnnotation(GetMapping.class)==null && method.getAnnotation(PostMapping.class)==null && method.getAnnotation(DeleteMapping.class)==null && method.getAnnotation(PutMapping.class)==null && method.getAnnotation(PatchMapping.class)==null )){
             AnnotationInfo annInfo=new AnnotationInfo(org.springframework.web.bind.annotation.RequestMapping.class);
             //use method name as mapping path
             annInfo.addValue("value",new String[]{"/"+method.getName()});
-            Annotation annotation= makeAnnotation(pool,annInfo);
+            Annotation annotation= makeAnnotation(annInfo);
             attribute.addAnnotation(annotation);
         }
 
@@ -353,52 +362,57 @@ public class ControllerGenerator {
         ctMethod.getMethodInfo().addAttribute(attribute);
 
         //init Method Parameter's Annotations
-        initMethodParameterAnnotations(pool,serviceCls,method,ctMethod);
+        initMethodParameterAnnotations(method,ctMethod);
     }
 
     /**
      * init Method Parameter's Annotations
-     * @param pool ConstPool
-     * @param serviceCls service class
      * @param method Method
      * @param ctMethod CtMethod
      */
-    private static void initMethodParameterAnnotations(ConstPool pool,Class serviceCls, Method method, CtMethod ctMethod){
+    private void initMethodParameterAnnotations(Method method, CtMethod ctMethod){
         //get method parameters's variable names
-        String[] paramNames= getMethodParameterNames(serviceCls,method);
-        //noinspection Since15
-        Parameter[] parameters= method.getParameters();
-        Annotation[][] allAnnotations=new Annotation[parameters.length][];
-        for(int i=0; i<parameters.length; i++){
+        String[] paramNames= getMethodParameterNames(method);
+        Class[] paramTypes= method.getParameterTypes();
+        java.lang.annotation.Annotation[][] allParameterAnnotations= method.getParameterAnnotations();
+
+        Annotation[][] allAnnotations=new Annotation[paramTypes.length][];
+        for(int i=0; i<paramTypes.length; i++){
             //one parameter's annotations
             List<Annotation> paraAnnList=new ArrayList<Annotation>();
-            //noinspection Since15
-            Parameter para=parameters[i];
+            java.lang.annotation.Annotation[] parameterAnnotations=allParameterAnnotations[i];
             //if parameter's type is primitive or is in java.lang package,need add RequestParam annotations
-            //noinspection Since15
             if(
-                    (((Class)para.getParameterizedType()).isPrimitive() || para.getParameterizedType().getTypeName().startsWith("java.lang.")) &&
-                            // and no RequestParam annotation
-                            //noinspection Since15
-                            para.getAnnotation(RequestParam.class)==null && para.getAnnotation(PathVariable.class)==null
+                (paramTypes[i].isPrimitive() || paramTypes[i].getName().startsWith("java.lang."))
+            ){
+                boolean noRequestParam=true;
+                //Check that the parameter contains @RequestParam or @PathVariable
+                for(java.lang.annotation.Annotation annotation :parameterAnnotations){
+                    if(
+                        annotation.annotationType()==RequestParam.class ||
+                        annotation.annotationType()==PathVariable.class
                     ){
-                //create Annotations Attribute instance
-                Annotation ann=new Annotation(RequestParam.class.getName(),pool);
-                ann.addMemberValue("value",new StringMemberValue(paramNames[i],pool));
-                ann.addMemberValue("required",new BooleanMemberValue(false,pool));
-                paraAnnList.add(ann);
+                        noRequestParam=false;
+                        break;
+                    }
+                }
+                if(noRequestParam) {
+                    //create Annotations Attribute instance
+                    Annotation ann = new Annotation(RequestParam.class.getName(), constPool);
+                    ann.addMemberValue("value", new StringMemberValue(paramNames[i], constPool));
+                    ann.addMemberValue("required", new BooleanMemberValue(false, constPool));
+                    paraAnnList.add(ann);
+                }
             }
             //fetch exits raw annotations, generate parameter's bytecode annotations
-            //noinspection Since15
-            java.lang.annotation.Annotation[] paraRawAnns= para.getAnnotations();
-            for(java.lang.annotation.Annotation ann : paraRawAnns){
-                paraAnnList.add(makeAnnotation(pool,ann));
+            for(java.lang.annotation.Annotation ann : parameterAnnotations){
+                paraAnnList.add(makeAnnotation(ann));
             }
             allAnnotations[i]=paraAnnList.toArray(new Annotation[]{});
         }
 
         //add ParameterAnnotationsAttribute to methodInfo
-        ParameterAnnotationsAttribute parameterAnnotationsAttribute = new ParameterAnnotationsAttribute(pool, ParameterAnnotationsAttribute.visibleTag);
+        ParameterAnnotationsAttribute parameterAnnotationsAttribute = new ParameterAnnotationsAttribute(constPool, ParameterAnnotationsAttribute.visibleTag);
         parameterAnnotationsAttribute.setAnnotations(allAnnotations);
         ctMethod.getMethodInfo().addAttribute(parameterAnnotationsAttribute);
     }
@@ -408,7 +422,7 @@ public class ControllerGenerator {
      * @param ann annotations
      * @return AnnotationValues
      */
-    private static Map<String,Object> getAnnotationValues(java.lang.annotation.Annotation ann){
+    private Map<String,Object> getAnnotationValues(java.lang.annotation.Annotation ann){
         Map<String,Object> memberValues=new HashMap<String, Object>();
         Method[] methods= ann.annotationType().getDeclaredMethods();
         for(Method mtd : methods){
@@ -427,12 +441,10 @@ public class ControllerGenerator {
 
     /**
      * save class bytecode to file (directory or jar)
-     * @param controllerCls controller ct class
-     * @param serviceCls service class
      * @param controllerPackage controller package
      * @param className controller class name
      */
-    private static void saveClassFile(CtClass controllerCls, Class serviceCls, String controllerPackage, String className){
+    private void saveClassFile(String controllerPackage, String className){
         URL rootRes=ControllerGenerator.class.getClassLoader().getResource("");
         if(rootRes==null){
             //try again
@@ -449,7 +461,7 @@ public class ControllerGenerator {
                 //}
             }else {
                 try {
-                    controllerCls.writeFile(rootRes.getPath());
+                    controllerCtCls.writeFile(rootRes.getPath());
                 } catch (Exception e) {
                     //ignore
                     if (logger.isDebugEnabled()) {
@@ -467,7 +479,7 @@ public class ControllerGenerator {
      * @param className class name
      * @param codeBytes class byte codes
      */
-    public static void writeClassIntoJarFile(String sourceJarFile,String classPackage,String className, byte[] codeBytes){
+    public void writeClassIntoJarFile(String sourceJarFile,String classPackage,String className, byte[] codeBytes){
         //String jarClassPath="file://xxx/springnc-test/target/springnc-test-1.0-SNAPSHOT.jar!/BOOT-INF/classes!/";
         String[] jarPaths=sourceJarFile.split("!/");
         //eg:/BOOT-INF/classes or class package path
