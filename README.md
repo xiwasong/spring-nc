@@ -7,6 +7,7 @@ spring-nc 是一个spring mvc的扩展，它通过service的接口生成对应�
 
 github:https://github.com/xiwasong/spring-nc   
 oschina:http://git.oschina.net/xiwa/spring-nc  
+qq群:233391281  
 
 # useage:
 使用方法：
@@ -117,7 +118,7 @@ output: hello world
 ### 5. example: [https://github.com/xiwasong/springnc-test](https://github.com/xiwasong/springnc-test)
 
 # auto mapping support: 
-自动映射支持，如下在接口上应用@AutoController注解，对应的接口方法将会被映射到"/IAuto/方法名"上。  
+自动映射支持，如下在接口上应用@AutoController注解，对应的接口方法将会被映射到"/IAutoMapping/方法名"上。  
 如果有不想要被自动映射的方法，可使用@ExcludeMapping注解将它排除。  
 当然你也可以同时混用@RequestMapping等映射注解。
 
