@@ -7,6 +7,7 @@ spring-nc 是一个spring mvc的扩展，它通过service的接口生成对应�
 
 github:https://github.com/xiwasong/spring-nc   
 oschina:http://git.oschina.net/xiwa/spring-nc  
+qq群:233391281  
 
 # useage:
 使用方法：
