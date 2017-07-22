@@ -104,7 +104,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class Application extends AutoControllerConfiguration{
 
     public static void main(String[] args) {
-        AutoControllerApplication.run(Application.class);
         SpringApplication.run(Application.class, args);
     }
 }
