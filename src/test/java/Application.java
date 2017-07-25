@@ -1,4 +1,5 @@
-import cn.hn.java.summer.springnc.AutoControllerConfiguration;
+import cn.hn.java.summer.springnc.EnableNoController;
+import cn.hn.java.summer.springnc.NoControllerConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -7,10 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 
 @SpringBootApplication(scanBasePackages = "service")
-//extends AutoControllerConfiguration or
-//@ImportAutoConfiguration(AutoControllerConfiguration.class)
-public class Application extends AutoControllerConfiguration{
-
+@EnableNoController
+public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }

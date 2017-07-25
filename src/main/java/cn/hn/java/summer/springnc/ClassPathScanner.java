@@ -1,5 +1,7 @@
 package cn.hn.java.summer.springnc;
 
+import org.springframework.util.Assert;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -20,28 +22,65 @@ public class ClassPathScanner {
     private static final String PROTOCOL_FILE = "file";
     private static final String PROTOCOL_JAR = "jar";
     private static final String PREFIX_FILE = "file:";
-    private static final String JAR_URL_SEPERATOR = "!/";
+    private static final String JAR_URL_SEPARATOR = "!/";
     private static final String CLASS_FILE = ".class";
     private static final String SPRINGBOOT_ANN_NAME="org.springframework.boot.autoconfigure.SpringBootApplication";
-    private String[] packageNames=null;
-    private Class source=null;
+    private String[] packageNames=new String[]{};
+    private Class[] sources=null;
     private IncludeTypeFilter includeTypeFilter;
 
     public ClassPathScanner(IncludeTypeFilter includeTypeFilter){
-        this(includeTypeFilter,null);
+        this(includeTypeFilter,new String[]{},null);
     }
 
-    public ClassPathScanner(IncludeTypeFilter includeTypeFilter, Class source){
+
+    public ClassPathScanner(IncludeTypeFilter includeTypeFilter,String[] packageNames){
         this.includeTypeFilter=includeTypeFilter;
-        this.source=source;
+        this.packageNames=packageNames;
         initPackageNames();
     }
 
+    public ClassPathScanner(IncludeTypeFilter includeTypeFilter, Class[] sources){
+        this.includeTypeFilter=includeTypeFilter;
+        this.sources=sources;
+        initPackageNames();
+    }
+
+    public ClassPathScanner(IncludeTypeFilter includeTypeFilter,String[] packageNames, Class[] sources){
+        this.includeTypeFilter=includeTypeFilter;
+        this.packageNames=packageNames;
+        this.sources=sources;
+        initPackageNames();
+    }
+
+    /**
+     * init packageNames variable
+     * get package names from sources class's annotation 'scanBasePackages' field
+     */
     private void initPackageNames(){
-        if(source==null){
-            packageNames=new String[]{""};
+        Assert.notNull(packageNames,"packageNames cannot be empty!");
+
+        if(sources==null || sources.length==0){
             return;
         }
+        List<String> packageNameList=new ArrayList<>();
+        for (Class source : sources) {
+            packageNameList.addAll(getAnnotationPackageNames(source));
+        }
+        //add exist package names
+        for(String name : packageNames){
+            packageNameList.add(name);
+        }
+        packageNames=packageNameList.toArray(new String[]{});
+    }
+
+    /**
+     * get scanBasePackages value from source class annotation
+     * @param source source class
+     * @return package names
+     */
+    private List<String> getAnnotationPackageNames(Class source){
+        List<String> packageNames=new ArrayList<>();
         Annotation[] annotations= source.getAnnotations();
         for(Annotation ann : annotations){
             //is SpringBootApplication annotation
@@ -51,18 +90,15 @@ public class ClassPathScanner {
                     Method method = ann.getClass().getDeclaredMethod("scanBasePackages");
                     Object annValue = method.invoke(ann);
                     int len= Array.getLength(annValue);
-                    packageNames=new String[len];
                     for(int i=0;i< len;i++){
-                        packageNames[i]=Array.get(annValue,i).toString();
+                        packageNames.add(Array.get(annValue,i).toString());
                     }
                 }catch (Exception e){
                     //ignore
                 }
             }
         }
-        if(packageNames==null || packageNames.length==0){
-            packageNames=new String[]{""};
-        }
+        return packageNames;
     }
 
     public List<Class<?>> scan(){
@@ -100,7 +136,7 @@ public class ClassPathScanner {
         String file = url.getFile();
         if (file.startsWith(PREFIX_FILE))
             file = file.substring(PREFIX_FILE.length());
-        int end = file.indexOf(JAR_URL_SEPERATOR);
+        int end = file.indexOf(JAR_URL_SEPARATOR);
         if (end!=(-1))
             file = file.substring(0, end);
         return new File(file);

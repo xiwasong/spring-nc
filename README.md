@@ -84,8 +84,8 @@ public class HelloService implements IHello {
 
 ```
 
-### 3. apply AutoControllerConfiguration on application:
-在应用程序启动类上应用AutoControllerConfiguration配置，使用@ImportAutoConfiguration(AutoControllerConfiguration.class)或直接继承AutoControllerConfiguration。
+### 3. apply @EnableNoController on application:
+在应用程序启动类上应用@EnableNoController注解即可。
 
 ```java
 package cn.hn.java.summer.springnctest;
@@ -99,18 +99,22 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 
 @SpringBootApplication(scanBasePackages = "cn.hn.java.summer.springnctest.service")
-//@ImportAutoConfiguration(AutoControllerConfiguration.class)
-// or extends AutoControllerConfiguration
-public class Application extends AutoControllerConfiguration{
+@EnableNoController
+public class Application {
 
     public static void main(String[] args) {
-        AutoControllerApplication.run(Application.class);
         SpringApplication.run(Application.class, args);
     }
 }
 
 ```
-
+You can create it manually when you don't use springboot:
+如果你不用springboot则可以如下手动创建：
+```xml
+<bean class="cn.hn.java.summer.springnc.NoControllerConfig">
+    <property name="scanBasePackages" value="cn.hn.java.summer.springnctest"/>
+</bean>
+```
 
 ### 4. get /say?name=world:
 output: hello world

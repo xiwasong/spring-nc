@@ -6,7 +6,7 @@
 
     <groupId>cn.hn.java.summer</groupId>
     <artifactId>spring-nc</artifactId>
-    <version>1.3.2-RELEASE</version>
+    <version>1.3.3-RELEASE</version>
     <packaging>jar</packaging>
 
     <name>spring-nc</name>
