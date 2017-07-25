@@ -108,7 +108,7 @@ public class Application {
 }
 
 ```
-You can create it manually when you don't use springboot:
+You can create it manually when you don't use springboot:   
 如果你不用springboot则可以如下手动创建：
 ```xml
 <bean class="cn.hn.java.summer.springnc.NoControllerConfig">
